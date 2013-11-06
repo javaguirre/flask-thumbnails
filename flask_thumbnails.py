@@ -29,10 +29,10 @@ class Thumbnail(object):
 
         app.jinja_env.filters['thumbnail'] = self.thumbnail
 
-    def thumbnail(self, img_url, size, crop=None, bg=None, quality=100):
+    def thumbnail(self, img_path, size, crop=None, bg=None, quality=100):
         """
 
-        :param img_url: url img - '/assets/media/summer.jpg'
+        :param img_url: url path - '/home/user/assets/media/summer.jpg'
         :param size: size return thumb - '100x100'
         :param crop: crop return thumb - 'fit' or None
         :param bg: tuple color or None - (255, 255, 255, 0)
@@ -40,28 +40,29 @@ class Thumbnail(object):
         :return: :thumb_url:
         """
         width, height = [int(x) for x in size.split('x')]
-
-        url_path, img_name = os.path.split(img_url)
-
+        file_path, img_name = os.path.split(img_path)
         name, fm = os.path.splitext(img_name)
-
         miniature = _get_name(name, fm, size, crop, bg, quality)
 
-        original_filename = os.path.join(self.app.config['UPLOAD_FOLDER'], url_path, img_name)
-        thumb_filename = os.path.join(self.app.config['UPLOAD_FOLDER'], 'cache', url_path, miniature)
+        original_filepath = img_path
+        thumb_filepath = os.path.join(self.app.config['UPLOAD_FOLDER'], miniature)
 
         # create folders
-        self._get_path(thumb_filename)
+        self._get_path(thumb_filepath)
 
-        thumb_url = os.path.join('cache', url_path, miniature)
+        thumb_url = os.path.join(
+            self.app.static_url_path,
+            self.app.config['UPLOAD_FOLDER'].replace(self.app.static_folder + '/', ''),
+            miniature
+        )
 
-        if os.path.exists(thumb_filename):
+        if os.path.exists(thumb_filepath):
             return thumb_url
 
-        elif not os.path.exists(thumb_filename):
+        elif not os.path.exists(thumb_filepath):
             thumb_size = (width, height)
             try:
-                image = Image.open(original_filename)
+                image = Image.open(original_filepath)
             except IOError:
                 return None
             #image = image.convert('RGBA')
@@ -74,7 +75,7 @@ class Thumbnail(object):
             if bg:
                 img = self._bg_square(img, bg)
 
-            img.save(thumb_filename, image.format, quality=quality)
+            img.save(thumb_filepath, image.format, quality=quality)
 
             return thumb_url
 
